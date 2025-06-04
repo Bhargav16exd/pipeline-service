@@ -4,6 +4,7 @@ import { Storage } from "@google-cloud/storage";
 import dotenv from "dotenv";
 import{ google} from "googleapis"
 import fs from "fs"
+import axios from "axios"
 
 dotenv.config();
 
@@ -24,14 +25,16 @@ app.listen(process.env.PORT, () => {
 app.post('/upload', async (req, res) => {
 
     try {
-        const { team, client, video , token } = req.body;
+
+        //Get data
+        const { team, client, video , token , YT_META_DATA } = req.body;
     
-        if (!team || !client || !video || !token ) {
+        //Data serializaiton
+        if (!team || !client || !video || !token || !YT_META_DATA ) {
             return res.status(400).send("Missing Parameters");
         }
     
-        console.log(token)
-    
+        //Google OAUTH2 Setup
         oauth2Client.setCredentials({
             access_token: token.access_token,
             refresh_token: token.refresh_token
@@ -41,36 +44,56 @@ app.post('/upload', async (req, res) => {
         const storage = new Storage();
         const bucketName = "pipeline_oneminus"
         const options = {
-            destination: `${video.videoName}.${video.extension}`,
+            destination: `${video._id}.${video.extension}`,
         };
+        
     
-       await storage.bucket(bucketName).file(`srushti/${video.videoName}`).download(options);
+       await storage.bucket(bucketName).file(`${client.username}/${video._id}`).download(options);
     
-    
-    
-       // YT Upload
-       
+       // YT Upload   
        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
     
        const videoResponse = await youtube.videos.insert({
         part: 'snippet,status',
         requestBody: {
             snippet: {
-                title: 'Your Video Title',
-                description: 'Your Video Description',
+                title: YT_META_DATA.title,
+                description: YT_META_DATA.description,
+                tags: YT_META_DATA.tags
             },
             status: {
-                privacyStatus: 'private',  // Set privacy status
+                privacyStatus: YT_META_DATA.privacyStatus,
             },
+            
         },
+        notifySubscribers:YT_META_DATA.notifySubscribers,
         media: {
-            body: fs.createReadStream(`${video.videoName}.${video.extension}`),
+            body: fs.createReadStream(`${video._id}.${video.extension}`),
         },
         });
-    
-        console.log(videoResponse)
 
-        fs.unlink(`${video.videoName}.${video.extension}`)
+
+        if(!videoResponse){
+            return
+        }
+
+        if(videoResponse.status == 200){
+
+            const data = await axios.post("http://localhost:9000/api/yt/status",{
+                team,
+                video,
+                YT_META_DATA
+            })
+
+            if(data.status == 200){
+                fs.unlinkSync(`${video._id}.${video.extension}`)
+                return 
+            }
+
+
+        }
+    
+        
     
     } catch (error) {
       
