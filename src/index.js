@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import{ google} from "googleapis"
 import fs from "fs"
 import axios from "axios"
+import { upload } from "./middleware/multer.middleware.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ const oauth2Client = new google.auth.OAuth2(
 app.listen(process.env.PORT, () => {
     console.log(`Server is Up and Running on PORT ${process.env.PORT}`);
 });
+
 
 app.post('/upload', async (req, res) => {
 
@@ -72,12 +74,20 @@ app.post('/upload', async (req, res) => {
         },
         });
 
+       
 
         if(!videoResponse){
             return
         }
 
         if(videoResponse.status == 200){
+
+            const res =  await youtube.thumbnails.set({
+                videoId:videoResponse.data.id,
+                media: {
+                  body: fs.createReadStream(YT_META_DATA.thumbnail),
+                }
+            });
 
             const data = await axios.post("http://localhost:9000/api/yt/status",{
                 team,
@@ -87,6 +97,7 @@ app.post('/upload', async (req, res) => {
 
             if(data.status == 200){
                 fs.unlinkSync(`${video._id}.${video.extension}`)
+                fs.unlinkSync(YT_META_DATA.thumbnail)
                 return 
             }
 
@@ -101,3 +112,18 @@ app.post('/upload', async (req, res) => {
     } 
   
 });
+
+app.post('/thumbnail', upload.single('thumbnail'),(req,res)=>{
+
+    return res.json({
+        success:true,
+        statusCode:201,
+        message:"Thumbnail Upload Sucesss",
+        data:{
+            destination:req.file.destination,
+            filename:req.file.filename
+        }
+    })
+})
+
+
