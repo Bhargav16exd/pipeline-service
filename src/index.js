@@ -6,6 +6,7 @@ import{ google} from "googleapis"
 import fs from "fs"
 import axios from "axios"
 import { upload } from "./middleware/multer.middleware.js";
+import { error } from "console";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.listen(process.env.PORT, () => {
 app.post('/upload', async (req, res) => {
 
     try {
+
 
         //Get data
         const { team, client, video , token , YT_META_DATA } = req.body;
@@ -54,7 +56,7 @@ app.post('/upload', async (req, res) => {
     
        // YT Upload   
        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-    
+       
        const videoResponse = await youtube.videos.insert({
         part: 'snippet,status',
         requestBody: {
@@ -74,7 +76,6 @@ app.post('/upload', async (req, res) => {
         },
         });
 
-       
 
         if(!videoResponse){
             return
@@ -82,7 +83,7 @@ app.post('/upload', async (req, res) => {
 
         if(videoResponse.status == 200){
 
-            const res =  await youtube.thumbnails.set({
+            await youtube.thumbnails.set({
                 videoId:videoResponse.data.id,
                 media: {
                   body: fs.createReadStream(YT_META_DATA.thumbnail),
@@ -102,18 +103,29 @@ app.post('/upload', async (req, res) => {
             }
 
         }
-    
+
         
     
     } catch (error) {
-      
         console.log(error)
-
+        //return error reponse
     } 
   
 });
 
 app.post('/thumbnail', upload.single('thumbnail'),(req,res)=>{
+
+    if( req.file.size > 2000000 ){
+        
+        fs.unlinkSync(`${req.file.destination}/${req.file.filename}`)
+
+        return res.json({
+        success:false,
+        statusCode:400,
+        message:"File Size too large",
+        })
+       
+    }
 
     return res.json({
         success:true,
