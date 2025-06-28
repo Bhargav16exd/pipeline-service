@@ -6,7 +6,7 @@ import{ google} from "googleapis"
 import fs from "fs"
 import axios from "axios"
 import { upload } from "./middleware/multer.middleware.js";
-import { error } from "console";
+import { verifyServerToServerCallback } from "./middleware/auth.middleware.js";
 
 dotenv.config();
 
@@ -29,10 +29,9 @@ app.listen(process.env.PORT, () => {
 });
 
 
-app.post('/upload', async (req, res) => {
+app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
 
     try {
-
 
         //Get data
         const { team, client, video , token , YT_META_DATA } = req.body;
