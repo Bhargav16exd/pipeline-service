@@ -6,7 +6,7 @@ import{ google} from "googleapis"
 import fs from "fs"
 import axios from "axios"
 import { upload } from "./middleware/multer.middleware.js";
-import { verifyServerToServerCallback } from "./middleware/auth.middleware.js";
+import { authMiddleware, verifyServerToServerCallback } from "./middleware/auth.middleware.js";
 
 dotenv.config();
 
@@ -116,7 +116,7 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
   
 });
 
-app.post('/thumbnail', upload.single('thumbnail'),(req,res)=>{
+app.post('/thumbnail', authMiddleware , upload.single('thumbnail'),(req,res)=>{
 
     if( req.file.size > 2000000 ){
         
