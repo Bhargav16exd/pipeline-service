@@ -24,6 +24,9 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.REDIRECT_URL
 )
 
+const storage = new Storage();
+const bucketName = "pipeline_oneminus"
+
 app.listen(process.env.PORT, () => {
     console.log(`Server is Up and Running on PORT ${process.env.PORT}`);
 });
@@ -46,21 +49,18 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
             access_token: token.access_token,
             refresh_token: token.refresh_token
         });
+
+
+        await download()
     
         // GCP Download
-        const storage = new Storage();
-        const bucketName = "pipeline_oneminus"
-        const options = {
-            destination: `${video._id}.${video.extension}`,
-        };
         
-    
-       await storage.bucket(bucketName).file(`${client.username}/${video._id}`).download(options);
+       storage.bucket(bucketName).file(`${client.username}/${video._id}`).createReadStream().pipe(fs.createWriteStream(`./${video._id}.${video.extension}`))
     
        // YT Upload   
        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
        
-       const videoResponse = await youtube.videos.insert({
+       const videoResponse = youtube.videos.insert({
         part: 'snippet,status',
         requestBody: {
             snippet: {
@@ -83,6 +83,8 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
         if(!videoResponse){
             return
         }
+
+        console.log(videoResponse)
 
         if(videoResponse.status == 200){
 
@@ -116,7 +118,7 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
   
 });
 
-app.post('/thumbnail', authMiddleware , upload.single('thumbnail'),(req,res)=>{
+app.post('/thumbnail', upload.single('thumbnail'),(req,res)=>{
 
     if( req.file.size > 2000000 ){
         
@@ -140,5 +142,10 @@ app.post('/thumbnail', authMiddleware , upload.single('thumbnail'),(req,res)=>{
         }
     })
 })
+
+
+async function download(){
+
+}
 
 
