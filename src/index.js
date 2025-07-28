@@ -79,7 +79,6 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
         },
         });
 
-
         if(!videoResponse){
             return
         }
