@@ -7,6 +7,8 @@ import fs from "fs"
 import axios from "axios"
 import { upload } from "./middleware/multer.middleware.js";
 import { authMiddleware, verifyServerToServerCallback } from "./middleware/auth.middleware.js";
+import { Worker, Job } from 'bullmq';
+
 
 dotenv.config();
 
@@ -27,17 +29,29 @@ const oauth2Client = new google.auth.OAuth2(
 const storage = new Storage();
 const bucketName = "pipeline_oneminus"
 
+
+
 app.listen(process.env.PORT, () => {
     console.log(`Server is Up and Running on PORT ${process.env.PORT}`);
 });
 
+const worker = new Worker(
+  'yt-upload-queue',
+  async (job) => {
+    await uploadFunction(job.data)
+  },
+  { concurrency: 1 , connection:{
+    host:"localhost"
+  } },
+);
 
-app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
+
+const uploadFunction = async (data) => {
 
     try {
 
         //Get data
-        const { team, client, video , token , YT_META_DATA } = req.body;
+        const { team, client, video , token , YT_META_DATA } = data;
     
         //Data serializaiton
         if (!team || !client || !video || !token || !YT_META_DATA ) {
@@ -50,12 +64,8 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
             refresh_token: token.refresh_token
         });
 
-
-        await download()
-    
-        // GCP Download
-        
-       storage.bucket(bucketName).file(`${client.username}/${video._id}`).createReadStream().pipe(fs.createWriteStream(`./${video._id}.${video.extension}`))
+        // GCP Download        
+       await storage.bucket(bucketName).file(`${client.username}/${video._id}`).createReadStream().pipe(fs.createWriteStream(`./${video._id}.${video.extension}`))
     
        // YT Upload   
        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
@@ -82,8 +92,6 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
         if(!videoResponse){
             return
         }
-
-        console.log(videoResponse)
 
         if(videoResponse.status == 200){
 
@@ -115,9 +123,9 @@ app.post('/upload', verifyServerToServerCallback ,async (req, res) => {
         //return error reponse
     } 
   
-});
+};
 
-app.post('/thumbnail', upload.single('thumbnail'),(req,res)=>{
+app.post('/thumbnail',authMiddleware,upload.single('thumbnail'),(req,res)=>{
 
     if( req.file.size > 2000000 ){
         
@@ -143,8 +151,5 @@ app.post('/thumbnail', upload.single('thumbnail'),(req,res)=>{
 })
 
 
-async function download(){
-
-}
 
 
