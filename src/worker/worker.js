@@ -1,6 +1,8 @@
 import { Storage } from "@google-cloud/storage";
 import { Worker } from "bullmq";
 import { google } from "googleapis";
+import fs from "fs"
+import axios from "axios"
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
@@ -39,7 +41,7 @@ function initWorker(){
             };
 
         
-            await storage.bucket(bucketName).file(`${client.username}/${video._id}`).download(options,{}).then(()=>{
+            await storage.bucket(bucketName).file(`${client.username}/${video._id}`).download(options).then(()=>{
                 console.log("Download Complete")
             });       
 
