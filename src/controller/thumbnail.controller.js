@@ -1,8 +1,11 @@
-import app from "../index"
-import { authMiddleware } from "../middleware/auth.middleware"
-import { upload } from "../middleware/multer.middleware"
+import { Router } from "express"
+import { authMiddleware } from "../middleware/auth.middleware.js"
+import { upload } from "../middleware/multer.middleware.js"
 
-app.post('/thumbnail',authMiddleware,upload.single('thumbnail'),(req,res)=>{
+
+const router = Router()
+
+router.post('/thumbnail',authMiddleware,upload.single('thumbnail'),(req,res)=>{
 
     if( req.file.size > 2000000 ){
         
@@ -26,3 +29,5 @@ app.post('/thumbnail',authMiddleware,upload.single('thumbnail'),(req,res)=>{
         }
     })
 })
+
+export{ router }

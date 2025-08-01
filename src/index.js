@@ -1,15 +1,8 @@
 import express from "express";
 import cors from "cors";
-import { Storage } from "@google-cloud/storage";
 import dotenv from "dotenv";
-import{ google} from "googleapis"
-import fs from "fs"
-import axios from "axios"
-import { upload } from "./middleware/multer.middleware.js";
-import { authMiddleware , verifyServerToServerCallback } from "./middleware/auth.middleware.js";
-import { Worker } from 'bullmq';
 import initWorker from "./worker/worker.js";
-
+import { router as thumbnailrouter } from "./controller/thumbnail.controller.js";
 
 dotenv.config();
 
@@ -23,10 +16,12 @@ app.use(cors({
   origin:process.env.ORIGIN_URL
 }))
 
+app.use('/',thumbnailrouter)
 
 app.listen(process.env.PORT, () => {
     console.log(`Server is Up and Running on PORT ${process.env.PORT}`);
 });
+
 
 // Init Worker
 
