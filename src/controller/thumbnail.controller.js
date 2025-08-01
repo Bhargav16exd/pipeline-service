@@ -1,4 +1,4 @@
-import app from "../index.js"
+import app from "../index"
 import { authMiddleware } from "../middleware/auth.middleware"
 import { upload } from "../middleware/multer.middleware"
 
