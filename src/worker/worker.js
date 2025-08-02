@@ -3,6 +3,9 @@ import { Worker } from "bullmq";
 import { google } from "googleapis";
 import fs from "fs"
 import axios from "axios"
+import dotenv from "dotenv"
+
+dotenv.config()
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
@@ -45,8 +48,9 @@ function initWorker(){
                 console.log("Download Complete")
             });       
 
+            await oauth2Client.refreshAccessToken()
         
-        // YT Upload   
+            // YT Upload   
             const youtube =  google.youtube({ version: 'v3', auth: oauth2Client });
         
             await youtube.videos.insert({
@@ -71,8 +75,7 @@ function initWorker(){
                 if(!videoResponse){
                     return
                 }
-
-
+                
                 if(videoResponse.status == 200){
 
                     await youtube.thumbnails.set({
@@ -100,6 +103,7 @@ function initWorker(){
 
         } catch (error) {
             console.log(error)
+            throw(error)
         } 
     },
     { concurrency: parseInt(process.env.CONCURRENCY_COUNT) , 
