@@ -22,13 +22,12 @@ app.listen(process.env.PORT, () => {
     console.log(`Server is Up and Running on PORT ${process.env.PORT}`);
 });
 
-
 // Init Worker
-
 initWorker()
 
 
 
+  
 export default app
 
 
