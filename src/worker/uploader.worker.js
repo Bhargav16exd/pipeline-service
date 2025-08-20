@@ -4,6 +4,8 @@ import { google } from "googleapis";
 import fs from "fs"
 import axios from "axios"
 import dotenv from "dotenv"
+import { statusQueue } from "../services/init.queues.js";
+import { createVideoStatus, DONE, INPROGRESS, PENDING } from "../utils/upload.status.template.js";
 
 dotenv.config()
 
@@ -26,6 +28,8 @@ function initWorker(){
 
             //Get data
             const { team, client, video , token , YT_META_DATA } = job.data;
+
+            await statusQueue.add('status', createVideoStatus(video._id, DONE ,DONE , DONE , INPROGRESS , PENDING ))
         
             //Data serializaiton
             if (!team || !client || !video || !token || !YT_META_DATA ) {
@@ -46,13 +50,17 @@ function initWorker(){
         
             await storage.bucket(bucketName).file(`${client.username}/${video._id}`).download(options).then(()=>{
                 console.log("Download Complete")
-            });       
+            });
+
+            await statusQueue.add('status', createVideoStatus(video._id, DONE ,DONE , DONE , DONE , INPROGRESS ))
+
+            //Add Item to Queue Item Downloaded Queue
 
             await oauth2Client.refreshAccessToken()
         
             // YT Upload   
             const youtube =  google.youtube({ version: 'v3', auth: oauth2Client });
-        
+
             await youtube.videos.insert({
             part: 'snippet,status',
             requestBody: {
@@ -92,6 +100,9 @@ function initWorker(){
                     })
 
                     if(data.status == 200){
+
+                        //Add Item to Queue Video Uploaded
+
                         fs.unlinkSync(`${video._id}.${video.extension}`)
                         fs.unlinkSync(YT_META_DATA.thumbnail)
                         return 
