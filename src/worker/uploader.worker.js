@@ -102,9 +102,9 @@ function initWorker(){
                     if(data.status == 200){
 
                         //Add Item to Queue Video Uploaded
-
                         fs.unlinkSync(`${video._id}.${video.extension}`)
                         fs.unlinkSync(YT_META_DATA.thumbnail)
+                        await statusQueue.add('status', createVideoStatus(video._id, DONE ,DONE , DONE , DONE , DONE ))
                         return 
                     }
 
